@@ -199,13 +199,13 @@
               Scan Photo
             </button>
             <div class="inline-flex rounded-xl bg-slate-100 p-1" role="group" aria-label="Distance input mode">
-              <button id="modeDirectBtn" type="button"
-                class="px-3 py-1 rounded-lg text-xs font-semibold bg-white text-slate-900 shadow-sm transition">
-                Trip km
-              </button>
               <button id="modeOdoBtn" type="button"
-                class="px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">
+                class="px-3 py-1 rounded-lg text-xs font-semibold bg-white text-slate-900 shadow-sm transition">
                 Odometer
+              </button>
+              <button id="modeDirectBtn" type="button"
+                class="px-3 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition">
+                Trip km
               </button>
             </div>
           </div>
@@ -252,24 +252,27 @@
           </div>
 
           <!-- Direct Trip KM Input -->
-          <div id="directKmGroup">
+          <div id="directKmGroup" class="hidden">
             <label for="tripKm" class="block text-xs font-semibold text-slate-700 mb-1">Kilometers Covered (km)</label>
             <input id="tripKm" type="number" step="0.1" min="0.1" placeholder="e.g. 210"
               class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
           </div>
 
           <!-- Odometer Inputs + Photo OCR -->
-          <div id="odoKmGroup" class="hidden space-y-3">
+          <div id="odoKmGroup" class="space-y-3">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label for="odoPrev" class="block text-xs font-semibold text-slate-700 mb-1">Previous Odometer (km)</label>
-                <input id="odoPrev" type="number" step="0.1" min="0" placeholder="e.g. 12450"
-                  class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                <label for="odoCurr" class="block text-xs font-semibold text-slate-700 mb-1">Current Odometer Reading (km)</label>
+                <input id="odoCurr" type="number" step="0.1" min="0" placeholder="e.g. 12950"
+                  class="w-full px-3 py-2 rounded-xl border border-emerald-300 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
               </div>
               <div>
-                <label for="odoCurr" class="block text-xs font-semibold text-slate-700 mb-1">Current Odometer (km)</label>
-                <input id="odoCurr" type="number" step="0.1" min="0" placeholder="e.g. 12660"
-                  class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                <div class="flex items-center justify-between mb-1">
+                  <label for="odoPrev" class="block text-xs font-semibold text-slate-700">Last Odometer (Auto)</label>
+                  <span id="odoDiffBadge" class="text-[11px] font-semibold text-emerald-700"></span>
+                </div>
+                <input id="odoPrev" type="number" step="0.1" min="0" placeholder="First trip baseline"
+                  class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
               </div>
             </div>
 
@@ -469,10 +472,10 @@
     (function () {
       const STORAGE_KEY = 'petrol_mileage_tracker_v1';
       const SAMPLE_TRIPS = [
-        { id: 's1', date: '2026-10-20', vehicle: 'Bike / Scooter', bunk: 'IndianOil Bunk', amount: 500, rate: 117.88, liters: 4.24, km: 195, isSample: true },
-        { id: 's2', date: '2026-10-28', vehicle: 'Bike / Scooter', bunk: 'HPCL Highway', amount: 600, rate: 117.88, liters: 5.09, km: 240, isSample: true },
-        { id: 's3', date: '2026-11-04', vehicle: 'Bike / Scooter', bunk: 'BPCL City', amount: 500, rate: 117.88, liters: 4.24, km: 190, isSample: true },
-        { id: 's4', date: '2026-11-10', vehicle: 'Bike / Scooter', bunk: 'IndianOil Bunk', amount: 700, rate: 117.88, liters: 5.94, km: 285, isSample: true }
+        { id: 's1', date: '2026-10-20', vehicle: 'Bike / Scooter', bunk: 'IndianOil Bunk', amount: 500, rate: 117.88, liters: 4.24, km: 195, odometer: 12195, isSample: true },
+        { id: 's2', date: '2026-10-28', vehicle: 'Bike / Scooter', bunk: 'HPCL Highway', amount: 600, rate: 117.88, liters: 5.09, km: 240, odometer: 12435, isSample: true },
+        { id: 's3', date: '2026-11-04', vehicle: 'Bike / Scooter', bunk: 'BPCL City', amount: 500, rate: 117.88, liters: 4.24, km: 190, odometer: 12625, isSample: true },
+        { id: 's4', date: '2026-11-10', vehicle: 'Bike / Scooter', bunk: 'IndianOil Bunk', amount: 700, rate: 117.88, liters: 5.94, km: 285, odometer: 12910, isSample: true }
       ];
 
       const BUILTIN_CITY_RATES = {
@@ -496,7 +499,7 @@
         selectedCity: 'Tirupati, AP',
         customCities: {},
         defaultRate: 117.88,
-        distanceMode: 'direct', // 'direct' | 'odo'
+        distanceMode: 'odo', // 'direct' | 'odo'
         trips: []
       };
 
@@ -531,6 +534,7 @@
       const tripKm = document.getElementById('tripKm');
       const odoPrev = document.getElementById('odoPrev');
       const odoCurr = document.getElementById('odoCurr');
+      const odoDiffBadge = document.getElementById('odoDiffBadge');
       const directKmGroup = document.getElementById('directKmGroup');
       const odoKmGroup = document.getElementById('odoKmGroup');
       const modeDirectBtn = document.getElementById('modeDirectBtn');
@@ -675,6 +679,23 @@
         }
       }
 
+      function getLastOdometerForVehicle(vehicle) {
+        const matching = state.trips
+          .filter((t) => t.vehicle === vehicle && typeof t.odometer === 'number' && t.odometer > 0)
+          .sort((a, b) => a.date.localeCompare(b.date) || String(a.id).localeCompare(String(b.id)));
+        return matching.length > 0 ? matching[matching.length - 1].odometer : null;
+      }
+
+      function syncPrevOdometer() {
+        const lastOdo = getLastOdometerForVehicle(tripVehicle.value);
+        if (lastOdo !== null) {
+          odoPrev.value = lastOdo;
+        } else {
+          odoPrev.value = '';
+        }
+        updateFormPreview();
+      }
+
       // Trip Form live calculations
       function getComputedDistance() {
         if (state.distanceMode === 'direct') {
@@ -693,6 +714,9 @@
         const amt = parseFloat(tripAmount.value);
         const l = parseFloat(tripLiters.value);
         const km = getComputedDistance();
+        if (odoDiffBadge) {
+          odoDiffBadge.textContent = km > 0 && state.distanceMode === 'odo' ? `+${km.toFixed(1)} km` : '';
+        }
 
         previewLiters.textContent = l > 0 ? `${l.toFixed(2)} L` : '—';
         if (km > 0 && l > 0) {
@@ -867,11 +891,14 @@
               <td class="py-3 px-3 text-right font-semibold text-slate-900">₹${t.amount.toLocaleString('en-IN')}</td>
               <td class="py-3 px-3 text-right text-slate-600">₹${t.rate.toFixed(2)}</td>
               <td class="py-3 px-3 text-right font-medium text-emerald-700">${t.liters.toFixed(2)} L</td>
-              <td class="py-3 px-3 text-right text-slate-700">${t.km.toFixed(1)} km</td>
-              <td class="py-3 px-3 text-right">
-                <span class="inline-block px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 font-bold">${mileage.toFixed(2)} km/L</span>
+              <td class="py-3 px-3 text-right text-slate-700">
+                <div>${t.km > 0 ? t.km.toFixed(1) + ' km' : 'Baseline'}</div>
+                ${t.odometer ? `<div class="text-[11px] text-slate-400">Odo: ${t.odometer}</div>` : ''}
               </td>
-              <td class="py-3 px-3 text-right text-indigo-700 font-medium">₹${costKm.toFixed(2)}</td>
+              <td class="py-3 px-3 text-right">
+                <span class="inline-block px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 font-bold">${t.km > 0 ? mileage.toFixed(2) + ' km/L' : 'Start'}</span>
+              </td>
+              <td class="py-3 px-3 text-right text-indigo-700 font-medium">${t.km > 0 ? '₹' + costKm.toFixed(2) : '—'}</td>
               <td class="py-3 px-3 text-center">
                 <button type="button" data-delete-id="${escapeHtml(t.id)}"
                   class="delete-trip-btn px-2.5 py-1 rounded-lg text-xs font-medium text-rose-600 hover:bg-rose-50 transition">
@@ -1039,6 +1066,7 @@
       tripAmount.addEventListener('input', syncTripLitersFromAmount);
       tripRate.addEventListener('input', syncTripLitersFromAmount);
       tripLiters.addEventListener('input', syncTripAmountFromLiters);
+      tripVehicle.addEventListener('change', syncPrevOdometer);
       tripKm.addEventListener('input', updateFormPreview);
       odoPrev.addEventListener('input', updateFormPreview);
       odoCurr.addEventListener('input', updateFormPreview);
@@ -1054,10 +1082,14 @@
           showToast('Please enter a valid petrol amount and rate');
           return;
         }
-        if (!(km > 0)) {
+        const currOdoVal = parseFloat(odoCurr.value);
+        const prevOdoVal = parseFloat(odoPrev.value);
+        const isFirstOdoBaseline = state.distanceMode === 'odo' && isNaN(prevOdoVal) && currOdoVal > 0;
+
+        if (!(km > 0) && !isFirstOdoBaseline) {
           showToast(state.distanceMode === 'direct'
             ? 'Please enter kilometers covered'
-            : 'Current odometer must be greater than previous');
+            : 'Current odometer must be greater than last odometer (' + (prevOdoVal || 0) + ' km)');
           return;
         }
 
@@ -1069,7 +1101,8 @@
           amount,
           rate,
           liters,
-          km,
+          km: isFirstOdoBaseline ? 0 : km,
+          odometer: state.distanceMode === 'odo' && currOdoVal > 0 ? currOdoVal : null,
           isSample: false
         };
 
@@ -1081,12 +1114,15 @@
         tripAmount.value = '';
         tripLiters.value = '';
         tripKm.value = '';
-        if (state.distanceMode === 'odo' && odoCurr.value) {
-          odoPrev.value = odoCurr.value;
+        if (state.distanceMode === 'odo') {
           odoCurr.value = '';
+          syncPrevOdometer();
+        } else {
+          updateFormPreview();
         }
-        updateFormPreview();
-        showToast(`Saved! Trip mileage: ${(km / liters).toFixed(2)} km/L`);
+        showToast(isFirstOdoBaseline
+          ? `Baseline saved (${currOdoVal} km). Next fill-up will auto-calculate mileage!`
+          : `Saved! Trip mileage: ${(km / liters).toFixed(2)} km/L`);
       });
 
       tripsTableBody.addEventListener('click', (e) => {
@@ -1105,6 +1141,7 @@
       clearSamplesBtn.addEventListener('click', () => {
         state.trips = state.trips.filter((t) => !t.isSample);
         saveState();
+        syncPrevOdometer();
         renderAll();
         showToast('Sample trips cleared');
       });
@@ -1221,7 +1258,7 @@
       convRate.value = state.defaultRate.toFixed(2);
       tripRate.value = state.defaultRate.toFixed(2);
       updateConverterFromMoney();
-      updateFormPreview();
+      syncPrevOdometer();
       renderAll();
     })();
   </script>
